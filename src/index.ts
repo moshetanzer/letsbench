@@ -2,14 +2,17 @@
 
 import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import os from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
 import ora from 'ora'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 interface BenchmarkResult {
   package: string
@@ -22,23 +25,19 @@ interface BenchmarkResult {
 
 class SimpleBenchmarker {
   private tempDir = join(process.cwd(), '.temp-benchmark')
-  private require: NodeRequire
 
   constructor() {
     if (!existsSync(this.tempDir)) {
       mkdirSync(this.tempDir, { recursive: true })
     }
 
-    // Initialize package.json for CommonJS
+    // Initialize package.json for ES modules
     const packageJson = {
       name: 'temp-benchmark',
       version: '1.0.0',
-      type: 'commonjs',
+      type: 'module',
     }
     writeFileSync(join(this.tempDir, 'package.json'), JSON.stringify(packageJson, null, 2))
-
-    // Create require function for the temp directory
-    this.require = createRequire(join(this.tempDir, 'package.json'))
   }
 
   private async installPackage(packageName: string): Promise<any> {
@@ -52,86 +51,82 @@ class SimpleBenchmarker {
 
       spinner.text = `Loading ${packageName}`
 
-      // Try multiple ways to load the package
       let pkg: any
 
       try {
-        // Try CommonJS require first
-        pkg = this.require(packageName)
+        // Try dynamic import first (ES modules)
+        const importPath = join(this.tempDir, 'node_modules', packageName)
+        pkg = await import(importPath)
       }
-      catch (requireError) {
+      catch (importError) {
         try {
-          // Try direct path resolution
+          // Try resolving package entry points
           const packagePath = join(this.tempDir, 'node_modules', packageName)
           const packageJsonPath = join(packagePath, 'package.json')
 
           if (existsSync(packageJsonPath)) {
             const packageInfo = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
-            const mainFile = packageInfo.main || packageInfo.module || 'index.js'
-            const fullPath = join(packagePath, mainFile)
 
-            if (existsSync(fullPath)) {
-              pkg = this.require(fullPath)
-            }
-            else {
-              // Try common entry points
-              const commonEntries = [
-                'index.js',
-                'index.mjs',
-                'index.cjs',
-                'index.ts',
-                'index.tsx',
-                'index.jsx',
-                'lib/index.js',
-                'lib/index.mjs',
-                'lib/index.ts',
-                'dist/index.js',
-                'dist/index.mjs',
-                'dist/index.cjs',
-                'src/index.js',
-                'src/index.mjs',
-                'src/index.ts',
-                'build/index.js',
-                'build/index.mjs',
-                'es/index.js',
-                'es/index.mjs',
-                'esm/index.js',
-                'esm/index.mjs',
-                'cjs/index.js',
-                'cjs/index.cjs',
-                'main.js',
-                'main.mjs',
-                'main.ts',
-                `${packageInfo.name}.js`,
-                `${packageInfo.name}.mjs`,
-              ]
-              for (const entry of commonEntries) {
-                const entryPath = join(packagePath, entry)
-                if (existsSync(entryPath)) {
-                  pkg = this.require(entryPath)
+            // Try different entry points
+            const entryPoints = [
+              packageInfo.exports?.['.']?.import,
+              packageInfo.exports?.['.']?.default,
+              packageInfo.exports?.['.'],
+              packageInfo.module,
+              packageInfo.main,
+              'index.mjs',
+              'index.js',
+              'dist/index.mjs',
+              'dist/index.js',
+              'lib/index.mjs',
+              'lib/index.js',
+              'src/index.mjs',
+              'src/index.js',
+              'build/index.mjs',
+              'build/index.js',
+              'es/index.mjs',
+              'es/index.js',
+              'esm/index.mjs',
+              'esm/index.js',
+            ].filter(Boolean)
+
+            for (const entryPoint of entryPoints) {
+              try {
+                const fullPath = entryPoint?.startsWith('.')
+                  ? join(packagePath, entryPoint)
+                  : join(packagePath, entryPoint || '')
+
+                if (existsSync(fullPath)) {
+                  // Use file:// URL for absolute paths
+                  const fileUrl = `file://${fullPath}`
+                  pkg = await import(fileUrl)
                   break
                 }
+              }
+              catch {
+                continue
+              }
+            }
+
+            // If still no luck, try the package name directly with file URL
+            if (!pkg) {
+              try {
+                const fileUrl = `file://${packagePath}`
+                pkg = await import(fileUrl)
+              }
+              catch {
+                // Last resort: try with node_modules prefix
+                pkg = await import(`${this.tempDir}/node_modules/${packageName}`)
               }
             }
           }
         }
-        // catch (pathError) {
         catch {
-          // Try ES module import as last resort
-          try {
-            const importPath = join(this.tempDir, 'node_modules', packageName)
-            pkg = await import(importPath)
-          }
-          // catch (importError) {
-          catch {
-            throw new Error(
-              `Could not load package: ${
-                typeof requireError === 'object' && requireError !== null && 'message' in requireError
-                  ? (requireError as any).message
-                  : 'Unknown error'
-              }`,
-            )
-          }
+          throw new Error(
+            `Could not load package: ${
+              importError instanceof Error ? importError.message : 'Unknown error'
+            }`,
+          )
         }
       }
 
