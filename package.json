@@ -1,25 +1,74 @@
 {
-  "name": "quick-bench",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "name": "letsbench",
+  "type": "module",
+  "version": "0.0.1",
+  "packageManager": "pnpm@10.11.0",
   "description": "",
+  "license": "MIT",
+  "repository": "",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.mjs"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/index.d.mts"
+      ]
+    }
+  },
+  "bin": {
+    "letsbench": "./dist/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "vitest dev",
+    "lint": "eslint . --fix",
+    "prepare": "simple-git-hooks",
+    "prepack": "pnpm build",
+    "prepublishOnly": "pnpm lint && pnpm test",
+    "release": "bumpp && pnpm publish",
+    "test": "pnpm test:unit && pnpm test:types",
+    "test:unit": "vitest",
+    "test:knip": "knip",
+    "test:versions": "installed-check -d --no-workspaces",
+    "test:types": "tsc --noEmit"
+  },
   "dependencies": {
     "chalk": "^5.4.1",
     "inquirer": "^12.6.1",
-    "ora": "^8.2.0",
-    "pkg-exports": "^0.2.0"
+    "ora": "^8.2.0"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "latest",
     "@types/inquirer": "^9.0.8",
     "@types/node": "^22.15.21",
-    "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "@vitest/coverage-v8": "latest",
+    "bumpp": "latest",
+    "changelogithub": "latest",
+    "eslint": "latest",
+    "installed-check": "latest",
+    "knip": "latest",
+    "lint-staged": "latest",
+    "simple-git-hooks": "latest",
+    "typescript": "latest",
+    "unbuild": "latest",
+    "vitest": "latest"
+  },
+  "resolutions": {
+    "package-name": "link:."
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,ts,mjs,cjs,json,.*rc}": [
+      "npx eslint --fix"
+    ]
   }
 }
