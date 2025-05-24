@@ -8,6 +8,7 @@ import { performance } from 'node:perf_hooks'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import chalk from 'chalk'
+import figlet from 'figlet'
 import inquirer from 'inquirer'
 import ora from 'ora'
 
@@ -31,7 +32,7 @@ class SimpleBenchmarker {
       mkdirSync(this.tempDir, { recursive: true })
     }
 
-    // Initialize package.json for ES modules
+    // Initialize package.json
     const packageJson = {
       name: 'temp-benchmark',
       version: '1.0.0',
@@ -308,6 +309,8 @@ class SimpleBenchmarker {
 
   async run(): Promise<void> {
     console.log(chalk.cyan.bold('🔬 NPM Package Benchmarker\n'))
+    console.log(chalk.gray(figlet.textSync('Lets Bench')))
+    console.log(chalk.gray('A simple CLI to run head-to-head function benchmarking across NPM packages\n'))
 
     try {
       // Get package names
@@ -425,5 +428,5 @@ class SimpleBenchmarker {
   }
 }
 
-// Run the CLI
+// Run cli
 new SimpleBenchmarker().run().catch(console.error)
