@@ -1,141 +1,223 @@
-# NPM Package Benchmarker 🔬
+# LetsBench
 
-A simple command-line tool to benchmark and compare the performance of functions from different NPM packages. Perfect for evaluating alternatives, optimizing dependencies, or making data-driven decisions about which package to use in your project.
+A simple CLI tool to run head-to-head function benchmarking across NPM packages. Perfect for comparing the performance of similar functions from different libraries.
 
-## Features
+## Quick Start
 
-- 🚀 **Easy Setup**: No configuration needed - just run and go
-- 📦 **Dynamic Package Loading**: Automatically installs and loads any NPM package
-- 🔍 **Smart Function Discovery**: Automatically finds available functions in packages
-- ⚡ **Performance Metrics**: Measures execution time and memory usage
-- 🎯 **Side-by-Side Comparison**: Compare two packages head-to-head
-- 📊 **Detailed Results**: Clear output with system info and performance ratios
-- 🛡️ **Error Handling**: Graceful handling of failed function calls
-- 🧹 **Auto Cleanup**: Temporary files are automatically removed
-
-## Usage
-
-Simply run the script and follow the interactive prompts:
+Run LetsBench directly with npx:
 
 ```bash
 npx letsbench
 ```
 
-### Example Session
+## Features
+
+- 🏆 **Head-to-head comparison** of functions from two NPM packages
+- ⚡ **Performance metrics** including execution time and memory usage
+- 🔍 **Automatic function discovery** from package exports
+- 📊 **Detailed results** with system information and winner declaration
+- 🎯 **Multiple runs** support for more accurate averages
+- 🎨 **Colorful CLI interface** with visual feedback
+
+## Usage
+
+### Basic Usage
+
+Simply run the command and follow the interactive prompts:
+
+```bash
+npx letsbench
+```
+
+The tool will guide you through:
+
+1. **Package Selection**: Enter two NPM package names to compare
+2. **Function Selection**: Choose specific functions from each package
+3. **Arguments**: Provide test arguments for the functions
+4. **Results**: View detailed benchmark results
+
+### Advanced Usage
+
+Run multiple iterations for more accurate averages:
+
+```bash
+npx letsbench --runs 10
+# or
+npx letsbench -r 10
+```
+
+**Options:**
+- `--runs, -r`: Number of runs per function (1-100, default: 1)
+
+## Example Session
 
 ```
-🔬 NPM Package Benchmarker
+➜ npx letsbench
 
-? First NPM package: lodash
-? Second NPM package: ramda
-✓ lodash loaded
-✓ ramda loaded
-? Choose function from lodash: map
-? Choose function from ramda: map
-? Arguments for lodash.map (JSON array): [[1,2,3], "x => x * 2"]
-? Arguments for ramda.map (JSON array): ["x => x * 2", [1,2,3]]
-✓ Benchmarks completed
+  _         _         ____                  _
+ | |    ___| |_ ___  | __ )  ___ _ __   ___| |__
+ | |   / _ \ __/ __| |  _ \ / _ \ '_ \ / __| '_ \
+ | |__|  __/ |_\__ \ | |_) |  __/ | | | (__| | | |
+ |_____\___|\__|___/ |____/ \___|_| |_|\___|_| |_|
+
+A simple CLI to run head-to-head function benchmarking across NPM packages
+
+✔ First NPM package: text-toolbox
+✔ Second NPM package: scule
+✔ text-toolbox loaded
+✔ scule loaded
+✔ Choose function from text-toolbox: pascalCase
+✔ Choose function from scule: pascalCase
+✔ Arguments for text-toolbox.pascalCase: hello world
+✔ Arguments for scule.pascalCase: ["hello world", {"normalize": true}]
+✔ Benchmarks completed
 
 🏆 BENCHMARK RESULTS
 ==================================================
 
 💻 System Info:
 Platform: darwin arm64
-CPU: Apple M1 Pro
-Memory: 32GB
-Node: v18.17.0
+CPU: Apple M1
+Memory: 8GB
+Node: v23.10.0
+Runs: 1
 
 📊 Results:
 
-1. lodash.map
-   ⏱️  Time: 0.1234ms
-   🧠 Memory: +128 bytes
-   ✅ Result: [2,4,6]
+1. text-toolbox.pascalCase
+   ⏱️  Time: 0.1453ms
+   🧠 Memory: +6344 bytes
+   ✅ Result: "HelloWorld"
 
-2. ramda.map
-   ⏱️  Time: 0.2456ms
-   🧠 Memory: +256 bytes
-   ✅ Result: [2,4,6]
+2. scule.pascalCase
+   ⏱️  Time: 0.4080ms
+   🧠 Memory: +12936 bytes
+   ✅ Result: "Hello world"
 
-🚀 Winner: lodash.map
-   1.99x faster than ramda.map
+🚀 Winner: text-toolbox.pascalCase
+   2.81x faster than scule.pascalCase
 ```
 
-## Input Format
+## Function Arguments
 
-### Package Names
-- Standard NPM package names (e.g., `lodash`, `moment`, `axios`)
-- Scoped packages work too (e.g., `@babel/core`, `@types/node`)
+LetsBench supports flexible argument parsing:
 
-### Function Arguments
-Arguments should be provided as JSON arrays:
-- Simple: `["hello world"]` for a single string argument
-- Multiple: `[1, 2, "test"]` for multiple arguments
-- Objects: `[{"key": "value"}, true]` for complex data
-- None: `[]` for functions with no arguments
+### Argument Examples
 
-### Function Discovery
-The tool automatically discovers functions by:
-- Scanning object properties up to 3 levels deep
-- Finding both direct exports and nested functions
-- Handling CommonJS and ES modules
-- Supporting default exports
+| Input | Parsed As | Description |
+|-------|-----------|-------------|
+| `hello world` | `["hello world"]` | Single string (auto-parsed) |
+| `[]` | `[]` | No arguments |
+| `["hello world"]` | `["hello world"]` | Single string (explicit) |
+| `["hello", {"normalize": true}]` | `["hello", {"normalize": true}]` | String with options object |
+| `[42, 100]` | `[42, 100]` | Two numbers |
+| `[[1,2,3]]` | `[[1,2,3]]` | Array as argument |
+
+### Argument Parsing Rules
+
+1. **Empty input**: Returns empty array `[]`
+2. **Valid JSON**: Parses as JSON (arrays remain arrays, objects become single arguments)
+3. **Invalid JSON**: Treats as single string argument
+
+## How It Works
+
+1. **Package Installation**: Downloads packages to a temporary directory
+2. **Function Discovery**: Automatically scans package exports to find available functions
+3. **Dynamic Loading**: Loads packages using ES module imports with fallback strategies
+4. **Benchmarking**: Measures execution time and memory usage using Node.js performance APIs
+5. **Results**: Displays comprehensive comparison with system information
 
 ## Supported Package Types
 
-- ✅ CommonJS packages (`module.exports`)
-- ✅ ES6 modules (`export default`, `export const`)
-- ✅ Mixed export patterns
-- ✅ TypeScript compiled packages
-- ✅ Packages with multiple entry points
+LetsBench supports various NPM package formats:
+
+- ✅ **ES Modules** (modern packages with `"type": "module"`)
+- ✅ **CommonJS** packages
+- ✅ **Packages with multiple entry points**
+- ✅ **TypeScript packages** (compiled to JavaScript)
+- ✅ **Packages with complex export maps**
+
+## Function Discovery
+
+The tool automatically discovers functions by:
+
+- Scanning direct exports
+- Checking `default` exports
+- Exploring nested object properties (up to 3 levels deep)
+- Filtering out internal/private methods (starting with `_` or `__`)
+
+## Output Metrics
+
+Each benchmark result includes:
+
+- **⏱️ Time**: Average execution time in milliseconds
+- **🧠 Memory**: Memory usage delta in bytes
+- **✅ Result**: Function return value (truncated if long)
+- **❌ Error**: Error message if function throws
+
+## System Information
+
+Results include comprehensive system details:
+
+- Operating system and architecture
+- CPU model
+- Total system memory
+- Node.js version
+- Number of benchmark runs
+
+## Troubleshooting
+
+### Package Loading Issues
+
+If a package fails to load:
+
+1. **Check package name**: Ensure the package exists on NPM
+2. **Version compatibility**: Some packages may not work with your Node.js version
+3. **Package format**: Some packages may use unsupported module formats
+
+### Function Not Found
+
+If no functions are discovered:
+
+1. The tool will still allow you to proceed with `default` export
+2. Check the package documentation for correct function names
+3. Some packages may have non-standard export patterns
+
+### Memory Usage
+
+For packages with high memory usage:
+
+- Consider using fewer runs (`--runs 1`)
+- Results may vary based on Node.js garbage collection
+- Memory delta shows allocation difference, not total usage
+
+## Performance Tips
+
+- **Multiple runs**: Use `--runs 5-10` for more reliable averages
+- **Warm-up**: First run may be slower due to JIT compilation
+- **Arguments**: Keep test arguments consistent for fair comparison
+- **Environment**: Run in similar conditions for reproducible results
 
 ## Limitations
 
+- Packages must be installable via NPM
 - Functions must be synchronous or return promises
-- Complex object arguments may not display fully in results
-- Some packages with native dependencies might not load properly
-- Memory measurements are approximate due to garbage collection
+- Memory measurements are approximations
+- Some complex packages may not load correctly
+- Temporary files created in `.temp-benchmark` directory (auto-cleaned)
 
-## Error Handling
+## Requirements
 
-The tool gracefully handles:
-- Package installation failures
-- Missing or invalid functions
-- Runtime errors during function execution
-- Invalid JSON arguments
-- Network timeouts
-
-Errors are displayed in the results without stopping the benchmark process.
+- **Node.js**: Version 14+ (ES modules support)
+- **NPM**: For package installation
+- **Internet**: To download packages from NPM registry
 
 ## Use Cases
 
-- **Library Selection**: Compare performance between similar packages
-- **Migration Planning**: Benchmark before switching dependencies
-- **Performance Optimization**: Identify bottlenecks in your dependencies
-- **Documentation**: Generate performance comparisons for technical decisions
-- **Learning**: Understand real-world performance differences
+Perfect for:
 
-## Technical Details
-
-- **Execution**: Uses `performance.now()` for high-precision timing
-- **Memory**: Measures heap usage before and after execution
-- **Isolation**: Each package runs in a temporary directory
-- **Cleanup**: Automatically removes temporary files and dependencies
-- **Safety**: Handles circular references and protected properties
-
-## Contributing
-
-Feel free to submit issues or pull requests for:
-- Additional package loading strategies
-- Better function discovery algorithms
-- Enhanced result formatting
-- Performance improvements
-- Bug fixes
-
-## License
-
-MIT License - feel free to use this tool in your projects!
-
----
-
-**Happy benchmarking!** 🚀
+- 🔍 **Library evaluation**: Compare similar packages before choosing
+- ⚡ **Performance optimization**: Identify faster alternatives
+- 📈 **Benchmarking**: Measure function performance across versions
+- 🎯 **Decision making**: Data-driven package selection
+- 📚 **Learning**: Understanding performance characteristics of different implementations
