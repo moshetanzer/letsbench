@@ -71,7 +71,6 @@ class SimpleBenchmarker {
           if (existsSync(packageJsonPath)) {
             const packageInfo = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
 
-            // Try different entry points
             const entryPoints = [
               packageInfo.exports?.['.']?.import,
               packageInfo.exports?.['.']?.default,
@@ -244,12 +243,13 @@ class SimpleBenchmarker {
     let result: any
     let error: string | undefined
 
-    // Run multiple times for better average
+    // Run multiple times for better averages i think this should be better?
     for (let i = 0; i < this.runs; i++) {
       const memBefore = process.memoryUsage().heapUsed
       const start = performance.now()
 
       try {
+        // todo: fix this
         // eslint-disable-next-line prefer-spread
         result = func.apply(null, args)
         if (result && typeof result.then === 'function') {
@@ -286,7 +286,6 @@ class SimpleBenchmarker {
     console.log(`\n${chalk.cyan('🏆 BENCHMARK RESULTS')}`)
     console.log(chalk.cyan('='.repeat(50)))
 
-    // System info
     console.log(chalk.yellow('\n💻 System Info:'))
     console.log(`Platform: ${os.platform()} ${os.arch()}`)
     console.log(`CPU: ${os.cpus()[0]!.model}`)
@@ -294,7 +293,6 @@ class SimpleBenchmarker {
     console.log(`Node: ${process.version}`)
     console.log(`Runs: ${this.runs} ${this.runs > 1 ? '(averaged)' : ''}`)
 
-    // Results
     console.log(chalk.yellow('\n📊 Results:'))
 
     results.forEach((result, i) => {
@@ -393,7 +391,7 @@ class SimpleBenchmarker {
         },
       ])
 
-      // Show better examples and hints
+      // Show examples and hints
       console.log(chalk.cyan('\n💡 Argument Examples:'))
       console.log(chalk.gray('  hello world                  → Single string (auto-parsed)'))
       console.log(chalk.gray('  []                           → No arguments'))
@@ -402,7 +400,7 @@ class SimpleBenchmarker {
       console.log(chalk.gray('  [42, 100]                    → Two numbers'))
       console.log(chalk.gray('  [[1,2,3]]                    → Array as argument'))
 
-      // Get test data with better validation
+      // Get test data with some validation - still dont have proper validation due to empty string parsing hmm
       const { args1 } = await inquirer.prompt([
         {
           type: 'input',
@@ -424,7 +422,7 @@ class SimpleBenchmarker {
           type: 'input',
           name: 'args2',
           message: `Arguments for ${package2}.${function2}:`,
-          default: args1, // Use same args as first function
+          default: args1, // Use same args as first function by deafult think this is sane
           validate: (input: string) => {
             if (!input.trim())
               return 'Enter something or [] for no arguments'
