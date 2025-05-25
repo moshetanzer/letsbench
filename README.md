@@ -52,11 +52,12 @@ npx letsbench -r 10
 ```
 
 **Options:**
+
 - `--runs, -r`: Number of runs per function (1-100, default: 1)
 
 ## Example Session
 
-```
+```shell
 ➜ npx letsbench
 
   _         _         ____                  _
