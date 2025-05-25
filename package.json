@@ -69,7 +69,9 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "latest",
+    "@types/inquirer": "^9.0.8",
     "@types/node": "^22.15.21",
+    "@vitest/coverage-v8": "latest",
     "bumpp": "latest",
     "changelogithub": "latest",
     "eslint": "latest",
