@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@types/figlet": "^1.7.0",
+    "@types/minimist": "^1.2.5",
     "chalk": "^5.4.1",
     "figlet": "^1.8.1",
     "inquirer": "^12.6.1",

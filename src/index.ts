@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import chalk from 'chalk'
 import figlet from 'figlet'
 import inquirer from 'inquirer'
+import minimist from 'minimist'
 import ora from 'ora'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -26,8 +27,10 @@ interface BenchmarkResult {
 
 class SimpleBenchmarker {
   private tempDir = join(process.cwd(), '.temp-benchmark')
+  private runs: number
 
-  constructor() {
+  constructor(runs = 1) {
+    this.runs = runs
     if (!existsSync(this.tempDir)) {
       mkdirSync(this.tempDir, { recursive: true })
     }
@@ -236,31 +239,44 @@ class SimpleBenchmarker {
       throw new TypeError(`${functionPath} is not a function`)
     }
 
-    const memBefore = process.memoryUsage().heapUsed
-    const start = performance.now()
-
+    const times: number[] = []
+    const memories: number[] = []
     let result: any
     let error: string | undefined
 
-    try {
-      // eslint-disable-next-line prefer-spread
-      result = func.apply(null, args)
-      if (result && typeof result.then === 'function') {
-        result = await result
+    // Run multiple times for better average
+    for (let i = 0; i < this.runs; i++) {
+      const memBefore = process.memoryUsage().heapUsed
+      const start = performance.now()
+
+      try {
+        // eslint-disable-next-line prefer-spread
+        result = func.apply(null, args)
+        if (result && typeof result.then === 'function') {
+          result = await result
+        }
       }
-    }
-    catch (err) {
-      error = err instanceof Error ? err.message : 'Unknown error'
-      result = null
+      catch (err) {
+        error = err instanceof Error ? err.message : 'Unknown error'
+        result = null
+        break // Stop on first error
+      }
+
+      const end = performance.now()
+      const memAfter = process.memoryUsage().heapUsed
+
+      times.push(end - start)
+      memories.push(memAfter - memBefore)
     }
 
-    const end = performance.now()
-    const memAfter = process.memoryUsage().heapUsed
+    // Calculate averages
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length
+    const avgMemory = memories.reduce((a, b) => a + b, 0) / memories.length
 
     return {
       function: functionPath,
-      time: end - start,
-      memory: memAfter - memBefore,
+      time: avgTime,
+      memory: avgMemory,
       result,
       error,
     }
@@ -276,6 +292,7 @@ class SimpleBenchmarker {
     console.log(`CPU: ${os.cpus()[0]!.model}`)
     console.log(`Memory: ${Math.round(os.totalmem() / 1024 / 1024 / 1024)}GB`)
     console.log(`Node: ${process.version}`)
+    console.log(`Runs: ${this.runs} ${this.runs > 1 ? '(averaged)' : ''}`)
 
     // Results
     console.log(chalk.yellow('\n📊 Results:'))
@@ -307,8 +324,22 @@ class SimpleBenchmarker {
     }
   }
 
+  private parseArguments(input: string): any[] {
+    if (!input.trim()) {
+      return []
+    }
+
+    try {
+      const parsed = JSON.parse(input)
+      return Array.isArray(parsed) ? parsed : [parsed]
+    }
+    catch {
+      // If not valid JSON, treat as single string argument
+      return [input.trim()]
+    }
+  }
+
   async run(): Promise<void> {
-    console.log(chalk.cyan.bold('🔬 NPM Package Benchmarker\n'))
     console.log(chalk.gray(figlet.textSync('Lets Bench')))
     console.log(chalk.gray('A simple CLI to run head-to-head function benchmarking across NPM packages\n'))
 
@@ -362,47 +393,53 @@ class SimpleBenchmarker {
         },
       ])
 
-      // Get test data
-      const { args1, args2 } = await inquirer.prompt([
+      // Show better examples and hints
+      console.log(chalk.cyan('\n💡 Argument Examples:'))
+      console.log(chalk.gray('  hello world                  → Single string (auto-parsed)'))
+      console.log(chalk.gray('  []                           → No arguments'))
+      console.log(chalk.gray('  ["hello world"]              → Single string (explicit)'))
+      console.log(chalk.gray('  ["hello", {"normalize": true}] → String with options'))
+      console.log(chalk.gray('  [42, 100]                    → Two numbers'))
+      console.log(chalk.gray('  [[1,2,3]]                    → Array as argument'))
+
+      // Get test data with better validation
+      const { args1 } = await inquirer.prompt([
         {
           type: 'input',
           name: 'args1',
-          message: `Arguments for ${package1}.${function1} (JSON array, e.g., ["hello world"] or []):`,
-          default: '[]',
-          filter: (input: string) => {
-            try {
-              const parsed = JSON.parse(input || '[]')
-              return Array.isArray(parsed) ? parsed : [parsed]
-            }
-            catch {
-              // If not valid JSON, treat as single string argument
-              return input.trim() ? [input.trim()] : []
-            }
-          },
-        },
-        {
-          type: 'input',
-          name: 'args2',
-          message: `Arguments for ${package2}.${function2} (JSON array, e.g., ["hello world"] or []):`,
-          default: '[]',
-          filter: (input: string) => {
-            try {
-              const parsed = JSON.parse(input || '[]')
-              return Array.isArray(parsed) ? parsed : [parsed]
-            }
-            catch {
-              // If not valid JSON, treat as single string argument
-              return input.trim() ? [input.trim()] : []
-            }
+          message: `Arguments for ${package1}.${function1}:`,
+          default: 'hello world',
+          validate: (input: string) => {
+            if (!input.trim())
+              return 'Enter something or [] for no arguments'
+            return true // Accept anything, let parseArguments handle it
           },
         },
       ])
 
+      const parsedArgs1 = this.parseArguments(args1)
+
+      const { args2 } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'args2',
+          message: `Arguments for ${package2}.${function2}:`,
+          default: args1, // Use same args as first function
+          validate: (input: string) => {
+            if (!input.trim())
+              return 'Enter something or [] for no arguments'
+            return true // Accept anything, let parseArguments handle it
+          },
+        },
+      ])
+
+      const parsedArgs2 = this.parseArguments(args2)
+
       // Run benchmarks
       const spinner = ora('Running benchmarks...').start()
 
-      const result1 = await this.benchmarkFunction(pkg1, function1, args1)
-      const result2 = await this.benchmarkFunction(pkg2, function2, args2)
+      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1)
+      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2)
 
       spinner.succeed('Benchmarks completed')
 
@@ -429,4 +466,12 @@ class SimpleBenchmarker {
 }
 
 // Run cli
-new SimpleBenchmarker().run().catch(console.error)
+const argv = minimist(process.argv.slice(2))
+const runs = Number.parseInt(argv.runs || argv.r || '1', 10)
+
+if (runs < 1 || runs > 100) {
+  console.error(chalk.red('Error: runs must be between 1 and 100'))
+  process.exit(1)
+}
+
+new SimpleBenchmarker(runs).run().catch(console.error)
