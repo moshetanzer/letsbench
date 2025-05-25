@@ -1,7 +1,7 @@
 {
   "name": "letsbench",
   "type": "module",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "packageManager": "pnpm@10.11.0",
   "description": "A CLI tool to benchmark and compare functions from different NPM packages with detailed performance metrics and visual feedback.",
   "license": "MIT",
