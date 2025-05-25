@@ -1,4 +1,9 @@
-# LetsBench
+# 🏁 LetsBench
+
+[![npm version][npm-version-src]][npm-version-href]
+[![npm downloads][npm-downloads-src]][npm-downloads-href]
+[![Codecov][codecov-src]][codecov-href]
+[![bundle size](https://img.shields.io/bundlephobia/minzip/letsbench)](https://bundlephobia.com/package/letsbench)
 
 A simple CLI tool to run head-to-head function benchmarking across NPM packages. Perfect for comparing the performance of similar functions from different libraries.
 
@@ -62,14 +67,14 @@ npx letsbench -r 10
 
 A simple CLI to run head-to-head function benchmarking across NPM packages
 
-✔ First NPM package: text-toolbox
-✔ Second NPM package: scule
-✔ text-toolbox loaded
-✔ scule loaded
-✔ Choose function from text-toolbox: pascalCase
-✔ Choose function from scule: pascalCase
-✔ Arguments for text-toolbox.pascalCase: hello world
-✔ Arguments for scule.pascalCase: ["hello world", {"normalize": true}]
+✔ First NPM package: demo-package1
+✔ Second NPM package: demo-package2
+✔ demo-package1 loaded
+✔ demo-package2 loaded
+✔ Choose function from demo-package1: pascalCase
+✔ Choose function from demo-package2: casePascal
+✔ Arguments for demo-package1.pascalCase: hello world
+✔ Arguments for demo-package2.casePascal: ["hello world", {"normalize": true}]
 ✔ Benchmarks completed
 
 🏆 BENCHMARK RESULTS
@@ -84,18 +89,18 @@ Runs: 1
 
 📊 Results:
 
-1. text-toolbox.pascalCase
+1. demo-pacakge1.pascalCase
    ⏱️  Time: 0.1453ms
    🧠 Memory: +6344 bytes
    ✅ Result: "HelloWorld"
 
-2. scule.pascalCase
+2. demo-pacakge2.casePascal
    ⏱️  Time: 0.4080ms
    🧠 Memory: +12936 bytes
-   ✅ Result: "Hello world"
+   ✅ Result: "HelloWorld"
 
-🚀 Winner: text-toolbox.pascalCase
-   2.81x faster than scule.pascalCase
+🚀 Winner: demo-pacakge1.pascalCase
+   2.81x faster than demo-pacakge2.casePascal
 ```
 
 ## Function Arguments
@@ -106,7 +111,7 @@ LetsBench supports flexible argument parsing:
 
 | Input | Parsed As | Description |
 |-------|-----------|-------------|
-| `hello world` | `["hello world"]` | Single string (auto-parsed) |
+| `hello world` | `hello world` | Single string (auto-parsed) |
 | `[]` | `[]` | No arguments |
 | `["hello world"]` | `["hello world"]` | Single string (explicit) |
 | `["hello", {"normalize": true}]` | `["hello", {"normalize": true}]` | String with options object |
@@ -165,59 +170,14 @@ Results include comprehensive system details:
 - Node.js version
 - Number of benchmark runs
 
-## Troubleshooting
+## License
 
-### Package Loading Issues
+MIT
 
-If a package fails to load:
-
-1. **Check package name**: Ensure the package exists on NPM
-2. **Version compatibility**: Some packages may not work with your Node.js version
-3. **Package format**: Some packages may use unsupported module formats
-
-### Function Not Found
-
-If no functions are discovered:
-
-1. The tool will still allow you to proceed with `default` export
-2. Check the package documentation for correct function names
-3. Some packages may have non-standard export patterns
-
-### Memory Usage
-
-For packages with high memory usage:
-
-- Consider using fewer runs (`--runs 1`)
-- Results may vary based on Node.js garbage collection
-- Memory delta shows allocation difference, not total usage
-
-## Performance Tips
-
-- **Multiple runs**: Use `--runs 5-10` for more reliable averages
-- **Warm-up**: First run may be slower due to JIT compilation
-- **Arguments**: Keep test arguments consistent for fair comparison
-- **Environment**: Run in similar conditions for reproducible results
-
-## Limitations
-
-- Packages must be installable via NPM
-- Functions must be synchronous or return promises
-- Memory measurements are approximations
-- Some complex packages may not load correctly
-- Temporary files created in `.temp-benchmark` directory (auto-cleaned)
-
-## Requirements
-
-- **Node.js**: Version 14+ (ES modules support)
-- **NPM**: For package installation
-- **Internet**: To download packages from NPM registry
-
-## Use Cases
-
-Perfect for:
-
-- 🔍 **Library evaluation**: Compare similar packages before choosing
-- ⚡ **Performance optimization**: Identify faster alternatives
-- 📈 **Benchmarking**: Measure function performance across versions
-- 🎯 **Decision making**: Data-driven package selection
-- 📚 **Learning**: Understanding performance characteristics of different implementations
+<!-- Badges -->
+[npm-version-src]: https://img.shields.io/npm/v/letsbench?style=flat
+[npm-version-href]: https://npmjs.com/package/letsbench
+[npm-downloads-src]: https://img.shields.io/npm/dm/letsbench?style=flat
+[npm-downloads-href]: https://npmjs.com/package/letsbench
+[codecov-src]: https://img.shields.io/codecov/c/gh/moshetanzer/letsbench/main?style=flat
+[codecov-href]: https://codecov.io/gh/moshetanzer/letsbench
