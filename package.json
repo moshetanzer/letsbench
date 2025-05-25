@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.11.0",
   "description": "A CLI tool to benchmark and compare functions from different NPM packages with detailed performance metrics and visual feedback.",
   "license": "MIT",
-  "repository": "",
+  "repository": "https://github.com/moshetanzer/letsbench",
   "keywords": [
     "benchmark",
     "cli",
