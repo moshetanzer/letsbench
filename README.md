@@ -3,7 +3,6 @@
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![Codecov][codecov-src]][codecov-href]
-[![bundle size](https://img.shields.io/bundlephobia/minzip/letsbench)](https://bundlephobia.com/package/letsbench)
 
 A simple CLI tool to run head-to-head function benchmarking across NPM packages. Perfect for comparing the performance of similar functions from different libraries.
 
@@ -112,7 +111,7 @@ LetsBench supports flexible argument parsing:
 
 | Input | Parsed As | Description |
 |-------|-----------|-------------|
-| `hello world` | `hello world` | Single string (auto-parsed) |
+| `hello world` | `["hello world"]` | Single string (auto-parsed) |
 | `[]` | `[]` | No arguments |
 | `["hello world"]` | `["hello world"]` | Single string (explicit) |
 | `["hello", {"normalize": true}]` | `["hello", {"normalize": true}]` | String with options object |
@@ -133,25 +132,6 @@ LetsBench supports flexible argument parsing:
 4. **Benchmarking**: Measures execution time and memory usage using Node.js performance APIs
 5. **Results**: Displays comprehensive comparison with system information
 
-## Supported Package Types
-
-LetsBench supports various NPM package formats:
-
-- ✅ **ES Modules** (modern packages with `"type": "module"`)
-- ✅ **CommonJS** packages
-- ✅ **Packages with multiple entry points**
-- ✅ **TypeScript packages** (compiled to JavaScript)
-- ✅ **Packages with complex export maps**
-
-## Function Discovery
-
-The tool automatically discovers functions by:
-
-- Scanning direct exports
-- Checking `default` exports
-- Exploring nested object properties (up to 3 levels deep)
-- Filtering out internal/private methods (starting with `_` or `__`)
-
 ## Output Metrics
 
 Each benchmark result includes:
@@ -160,16 +140,6 @@ Each benchmark result includes:
 - **🧠 Memory**: Memory usage delta in bytes
 - **✅ Result**: Function return value (truncated if long)
 - **❌ Error**: Error message if function throws
-
-## System Information
-
-Results include comprehensive system details:
-
-- Operating system and architecture
-- CPU model
-- Total system memory
-- Node.js version
-- Number of benchmark runs
 
 ## License
 
