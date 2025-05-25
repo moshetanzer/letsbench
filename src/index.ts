@@ -243,13 +243,13 @@ class SimpleBenchmarker {
     let result: any
     let error: string | undefined
 
-    // Run multiple times for better averages i think this should be better?
+    // Run multiple times for better averages i think this should be better
     for (let i = 0; i < this.runs; i++) {
       const memBefore = process.memoryUsage().heapUsed
       const start = performance.now()
 
       try {
-        // todo: fix this
+        // todo: use spread operator for args - tried was breasking something
         // eslint-disable-next-line prefer-spread
         result = func.apply(null, args)
         if (result && typeof result.then === 'function') {
@@ -323,17 +323,41 @@ class SimpleBenchmarker {
   }
 
   private parseArguments(input: string): any[] {
+    // Handle empty input
     if (!input.trim()) {
       return []
     }
 
+    // First, try to parse as JSON
     try {
       const parsed = JSON.parse(input)
-      return Array.isArray(parsed) ? parsed : [parsed]
+      // If it's already an array, return it
+      if (Array.isArray(parsed)) {
+        return parsed
+      }
+      // If it's a single value, wrap it in an array
+      return [parsed]
     }
-    catch {
-      // If not valid JSON, treat as single string argument
-      return [input.trim()]
+    catch (jsonError) {
+      // If JSON parsing fails, check if it looks like it should be JSON but has syntax errors
+      const trimmed = input.trim()
+
+      // If it starts and ends with brackets, it was probably meant to be JSON
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        console.log(chalk.yellow(`⚠️  Invalid JSON syntax: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`))
+        console.log(chalk.yellow(`   Input: ${input}`))
+        throw new Error(`Invalid JSON array syntax. Please check your brackets, quotes, and commas.`)
+      }
+
+      // If it starts and ends with braces, it was probably meant to be a JSON object
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        console.log(chalk.yellow(`⚠️  Invalid JSON syntax: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`))
+        console.log(chalk.yellow(`   Input: ${input}`))
+        throw new Error(`Invalid JSON object syntax. Please check your brackets, quotes, and commas.`)
+      }
+
+      // Otherwise, treat as a single string argument
+      return [trimmed]
     }
   }
 
@@ -393,14 +417,14 @@ class SimpleBenchmarker {
 
       // Show examples and hints
       console.log(chalk.cyan('\n💡 Argument Examples:'))
-      console.log(chalk.gray('  hello world                  → Single string (auto-parsed)'))
-      console.log(chalk.gray('  []                           → No arguments'))
-      console.log(chalk.gray('  ["hello world"]              → Single string (explicit)'))
+      console.log(chalk.gray('  hello world                    → Single string (auto-parsed)'))
+      console.log(chalk.gray('  []                             → No arguments'))
+      console.log(chalk.gray('  ["hello world"]                → Single string (explicit)'))
       console.log(chalk.gray('  ["hello", {"normalize": true}] → String with options'))
-      console.log(chalk.gray('  [42, 100]                    → Two numbers'))
-      console.log(chalk.gray('  [[1,2,3]]                    → Array as argument'))
+      console.log(chalk.gray('  [42, 100]                      → Two numbers'))
+      console.log(chalk.gray('  [[1,2,3]]                      → Array as argument'))
 
-      // Get test data with some validation - still dont have proper validation due to empty string parsing hmm
+      // Get test data with better validation and debugging
       const { args1 } = await inquirer.prompt([
         {
           type: 'input',
@@ -408,30 +432,46 @@ class SimpleBenchmarker {
           message: `Arguments for ${package1}.${function1}:`,
           default: 'hello world',
           validate: (input: string) => {
-            if (!input.trim())
+            if (!input.trim()) {
               return 'Enter something or [] for no arguments'
-            return true // Accept anything, let parseArguments handle it
+            }
+            try {
+              this.parseArguments(input)
+              return true
+            }
+            catch (error) {
+              return error instanceof Error ? error.message : 'Invalid argument format'
+            }
           },
         },
       ])
 
       const parsedArgs1 = this.parseArguments(args1)
+      console.log(chalk.gray(`   Parsed as: ${JSON.stringify(parsedArgs1)}`))
 
       const { args2 } = await inquirer.prompt([
         {
           type: 'input',
           name: 'args2',
           message: `Arguments for ${package2}.${function2}:`,
-          default: args1, // Use same args as first function by deafult think this is sane
+          default: args1, // Use same args as first function by default this this is a sane default
           validate: (input: string) => {
-            if (!input.trim())
+            if (!input.trim()) {
               return 'Enter something or [] for no arguments'
-            return true // Accept anything, let parseArguments handle it
+            }
+            try {
+              this.parseArguments(input)
+              return true
+            }
+            catch (error) {
+              return error instanceof Error ? error.message : 'Invalid argument format'
+            }
           },
         },
       ])
 
       const parsedArgs2 = this.parseArguments(args2)
+      console.log(chalk.gray(`   Parsed as: ${JSON.stringify(parsedArgs2)}`))
 
       // Run benchmarks
       const spinner = ora('Running benchmarks...').start()
