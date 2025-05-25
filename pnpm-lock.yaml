@@ -14,9 +14,6 @@ importers:
       '@types/figlet':
         specifier: ^1.7.0
         version: 1.7.0
-      '@types/inquirer':
-        specifier: ^9.0.8
-        version: 9.0.8
       '@types/minimist':
         specifier: ^1.2.5
         version: 1.2.5
@@ -39,6 +36,9 @@ importers:
       '@antfu/eslint-config':
         specifier: latest
         version: 4.13.2(@vue/compiler-sfc@3.5.14)(eslint@9.27.0(jiti@2.4.2))(typescript@5.8.3)(vitest@3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(jiti@2.4.2)(tsx@4.19.4)(yaml@2.8.0))
+      '@types/inquirer':
+        specifier: ^9.0.8
+        version: 9.0.8
       '@types/node':
         specifier: ^22.15.21
         version: 22.15.21
