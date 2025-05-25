@@ -3,9 +3,25 @@
   "type": "module",
   "version": "0.0.5",
   "packageManager": "pnpm@10.11.0",
-  "description": "",
+  "description": "A CLI tool to benchmark and compare functions from different NPM packages with detailed performance metrics and visual feedback.",
   "license": "MIT",
   "repository": "",
+  "keywords": [
+    "benchmark",
+    "cli",
+    "performance",
+    "function-comparison",
+    "npm",
+    "node",
+    "typescript",
+    "benchmarking-tool",
+    "performance-testing",
+    "head-to-head",
+    "function-benchmark",
+    "compare-libraries",
+    "nodejs",
+    "performance-metrics"
+  ],
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs"
