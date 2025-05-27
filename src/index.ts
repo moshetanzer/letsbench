@@ -177,7 +177,7 @@ class SimpleBenchmarker {
           ].filter(key =>
             !key.startsWith('_')
             && !key.startsWith('__')
-            && !['constructor', 'prototype', 'caller', 'arguments', 'name', 'length'].includes(key),
+            && !EXCLUDED_KEYS.includes(key),
           )
 
           for (const key of keys) {
