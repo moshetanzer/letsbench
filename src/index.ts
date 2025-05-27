@@ -235,11 +235,6 @@ class SimpleBenchmarker {
         name !== 'default'
         && name !== 'module.exports',
       )
-      // .map(name =>
-      //   name.startsWith('default.')
-      //     ? name.slice('default.'.length)
-      //     : name,
-      // )
   }
 
   private getValue(obj: any, path: string): any {
