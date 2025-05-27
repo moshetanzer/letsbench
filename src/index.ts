@@ -167,15 +167,10 @@ class SimpleBenchmarker {
         functions.push(path || 'main')
       }
 
-      // Handle default export
-      if (obj && typeof obj.default === 'function' && path === '') {
-        functions.push('default')
-      }
-
       // Explore object properties
       if (typeof obj === 'object' && obj !== null) {
         try {
-          // Get all enumerable properties including getters
+        // Get all enumerable properties including getters
           const keys = [
             ...Object.keys(obj),
             ...Object.getOwnPropertyNames(obj).filter(key =>
@@ -206,16 +201,42 @@ class SimpleBenchmarker {
               }
             }
             catch {
-              // Skip properties that can't be accessed
+            // Skip properties that can't be accessed
             }
           }
         }
         catch {
-          // Skip if can't enumerate properties
+        // Skip if can't enumerate properties
         }
       }
     }
 
+    // Check if this looks like a CommonJS module with default export containing the actual functions
+    const keys = Object.keys(pkg)
+
+    // If we only have 'default' key and it's an object with multiple properties, explore the default export
+    if (keys.length === 1 && keys[0] === 'default' && typeof pkg.default === 'object' && pkg.default !== null) {
+      const defaultKeys = Object.keys(pkg.default)
+      if (defaultKeys.length > 1) {
+      // This looks like a CommonJS module where all exports are under 'default'
+        explore(pkg.default)
+        return [...new Set(functions)]
+      }
+    }
+
+    // If we have both 'default' and other keys, but default contains more functions, prefer default
+    if (keys.includes('default') && typeof pkg.default === 'object' && pkg.default !== null) {
+      const defaultKeys = Object.keys(pkg.default).filter(key => typeof pkg.default[key] === 'function')
+      const topLevelFunctions = keys.filter(key => key !== 'default' && typeof pkg[key] === 'function')
+
+      // If default has significantly more functions, use it instead
+      if (defaultKeys.length > topLevelFunctions.length && defaultKeys.length > 5) {
+        explore(pkg.default)
+        return [...new Set(functions)]
+      }
+    }
+
+    // Default behavior - explore the package normally
     explore(pkg)
     return [...new Set(functions)]
   }
