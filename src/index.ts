@@ -149,28 +149,26 @@ class SimpleBenchmarker {
   private getFunctions(pkg: any, maxDepth = 3): string[] {
     const functions: string[] = []
     const visited = new WeakSet()
-
+    const EXCLUDED_KEYS = ['constructor', 'prototype', 'caller', 'arguments', 'name', 'length']
     const explore = (obj: any, path = '', depth = 0) => {
-      if (depth > maxDepth || !obj) {
+      if (depth > maxDepth || obj == null) {
         return
       }
 
       // Avoid circular references
-      if (typeof obj === 'object' && obj !== null) {
+      if (typeof obj === 'object' || typeof obj === 'function') {
         if (visited.has(obj))
           return
         visited.add(obj)
       }
 
-      // Handle direct function
       if (typeof obj === 'function') {
         functions.push(path || 'main')
+        // 🔥 Also explore function properties
       }
 
-      // Explore object properties
-      if (typeof obj === 'object' && obj !== null) {
+      if (typeof obj === 'object' || typeof obj === 'function') {
         try {
-        // Get all enumerable properties including getters
           const keys = [
             ...Object.keys(obj),
             ...Object.getOwnPropertyNames(obj).filter(key =>
@@ -180,12 +178,7 @@ class SimpleBenchmarker {
           ].filter(key =>
             !key.startsWith('_')
             && !key.startsWith('__')
-            && key !== 'constructor'
-            && key !== 'prototype'
-            && key !== 'caller'
-            && key !== 'arguments'
-            && key !== 'name'
-            && key !== 'length',
+            && !EXCLUDED_KEYS.includes(key),
           )
 
           for (const key of keys) {
@@ -196,17 +189,18 @@ class SimpleBenchmarker {
               if (typeof value === 'function') {
                 functions.push(newPath)
               }
-              else if (typeof value === 'object' && value !== null && depth < maxDepth) {
+
+              if ((typeof value === 'object' || typeof value === 'function') && value !== null && depth < maxDepth) {
                 explore(value, newPath, depth + 1)
               }
             }
             catch {
-            // Skip properties that can't be accessed
+              // Skip inaccessible properties
             }
           }
         }
         catch {
-        // Skip if can't enumerate properties
+          // Skip if can't enumerate
         }
       }
     }
@@ -238,7 +232,11 @@ class SimpleBenchmarker {
 
     // Default behavior - explore the package normally
     explore(pkg)
-    return [...new Set(functions)]
+    return Array.from(new Set(functions))
+      .filter(name =>
+        name !== 'default'
+        && name !== 'module.exports',
+      )
   }
 
   private getValue(obj: any, path: string): any {
