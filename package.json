@@ -16,7 +16,6 @@
     "typescript",
     "benchmarking-tool",
     "performance-testing",
-    "head-to-head",
     "function-benchmark",
     "compare-libraries",
     "nodejs",
@@ -59,8 +58,6 @@
     "test:types": "tsc --noEmit"
   },
   "dependencies": {
-    "@types/figlet": "^1.7.0",
-    "@types/minimist": "^1.2.5",
     "chalk": "^5.4.1",
     "figlet": "^1.8.1",
     "inquirer": "^12.6.1",
@@ -69,7 +66,9 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "latest",
+    "@types/figlet": "^1.7.0",
     "@types/inquirer": "^9.0.8",
+    "@types/minimist": "^1.2.5",
     "@types/node": "^22.15.21",
     "@vitest/coverage-v8": "latest",
     "bumpp": "latest",

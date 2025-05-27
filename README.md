@@ -124,22 +124,9 @@ LetsBench supports flexible argument parsing:
 2. **Valid JSON**: Parses as JSON (arrays remain arrays, objects become single arguments)
 3. **Invalid JSON**: Treats as single string argument
 
-## How It Works
+## Contributing
 
-1. **Package Installation**: Downloads packages to a temporary directory
-2. **Function Discovery**: Automatically scans package exports to find available functions
-3. **Dynamic Loading**: Loads packages using ES module imports with fallback strategies
-4. **Benchmarking**: Measures execution time and memory usage using Node.js performance APIs
-5. **Results**: Displays comprehensive comparison with system information
-
-## Output Metrics
-
-Each benchmark result includes:
-
-- **⏱️ Time**: Average execution time in milliseconds
-- **🧠 Memory**: Memory usage delta in bytes
-- **✅ Result**: Function return value (truncated if long)
-- **❌ Error**: Error message if function throws
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
