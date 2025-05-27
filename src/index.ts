@@ -150,8 +150,9 @@ class SimpleBenchmarker {
     const functions: string[] = []
     const visited = new WeakSet()
     const explore = (obj: any, path = '', depth = 0) => {
-      if (depth > maxDepth || obj == null)
+      if (depth > maxDepth || obj == null) {
         return
+      }
 
       // Avoid circular references
       if (typeof obj === 'object' || typeof obj === 'function') {
@@ -176,7 +177,7 @@ class SimpleBenchmarker {
           ].filter(key =>
             !key.startsWith('_')
             && !key.startsWith('__')
-            && !['constructor', 'prototype', 'caller', 'arguments', 'name', 'length'].includes(key),
+            && !EXCLUDED_KEYS.includes(key),
           )
 
           for (const key of keys) {
