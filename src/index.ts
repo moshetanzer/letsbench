@@ -149,6 +149,7 @@ class SimpleBenchmarker {
   private getFunctions(pkg: any, maxDepth = 3): string[] {
     const functions: string[] = []
     const visited = new WeakSet()
+    const EXCLUDED_KEYS = ['constructor', 'prototype', 'caller', 'arguments', 'name', 'length']
     const explore = (obj: any, path = '', depth = 0) => {
       if (depth > maxDepth || obj == null) {
         return
