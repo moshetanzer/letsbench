@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  package-name: link:.
-
 importers:
 
   .:
@@ -15,8 +12,8 @@ importers:
         specifier: ^5.4.1
         version: 5.4.1
       export-scanner:
-        specifier: ^0.0.2
-        version: 0.0.2
+        specifier: ^0.0.3
+        version: 0.0.3
       figlet:
         specifier: ^1.8.1
         version: 1.8.1
@@ -1823,8 +1820,8 @@ packages:
     resolution: {integrity: sha512-/kP8CAwxzLVEeFrMm4kMmy4CCDlpipyA7MYLVrdJIkV0fYF0UaigQHRsxHiuY/GEea+bh4KSv3TIlgr+2UL6bw==}
     engines: {node: '>=12.0.0'}
 
-  export-scanner@0.0.2:
-    resolution: {integrity: sha512-0d1N3yCF0abygbnxsbyuNKt5QaxwL/JL38U7MB9sE1/AutdrcVq6H5t9idLMs/N+LT6kT7L+rYeDhTLz3hjdig==}
+  export-scanner@0.0.3:
+    resolution: {integrity: sha512-BR3Ogj98aLoDn+B5ezglbs9289WzR+weIenRSfnPXqH/w6l/6vSjVzwLN+LTFXr1mTuDxbU6RzenSQbv1l5Akg==}
 
   exsolve@1.0.5:
     resolution: {integrity: sha512-pz5dvkYYKQ1AHVrgOzBKWeP4u4FRb3a6DNK2ucr0OoNwYIU4QWsJ+NM36LLzORT+z845MzKHHhpXiUF5nvQoJg==}
@@ -5276,7 +5273,7 @@ snapshots:
 
   expect-type@1.2.1: {}
 
-  export-scanner@0.0.2: {}
+  export-scanner@0.0.3: {}
 
   exsolve@1.0.5: {}
 

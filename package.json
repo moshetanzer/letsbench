@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "chalk": "^5.4.1",
-    "export-scanner": "^0.0.2",
+    "export-scanner": "^0.0.3",
     "figlet": "^1.8.1",
     "inquirer": "^12.6.1",
     "minimist": "^1.2.8",
@@ -83,9 +83,6 @@
     "typescript": "latest",
     "unbuild": "latest",
     "vitest": "latest"
-  },
-  "resolutions": {
-    "package-name": "link:."
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"
