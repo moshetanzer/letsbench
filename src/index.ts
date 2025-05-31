@@ -50,22 +50,18 @@ class SimpleBenchmarker {
       console.log(chalk.gray(figlet.textSync('Lets Bench')))
       console.log(chalk.cyan(`Benchmarking: ${package1}.${function1} vs ${package2}.${function2}\n`))
 
-      // Install packages
       const pkg1 = await this.installPackage(package1)
       const pkg2 = await this.installPackage(package2)
 
-      // Get functions (for validation)
       const functions1 = this.getFunctions(pkg1)
       const functions2 = this.getFunctions(pkg2)
 
-      // Parse arguments
       const parsedArgs1 = this.parseArguments(args1)
       const parsedArgs2 = this.parseArguments(args2)
 
       console.log(chalk.gray(`${package1}.${function1} args: ${JSON.stringify(parsedArgs1)}`))
       console.log(chalk.gray(`${package2}.${function2} args: ${JSON.stringify(parsedArgs2)}`))
 
-      // Run benchmarks
       const spinner = ora('Running benchmarks...').start()
 
       const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1, functions1.allFinalExports)
