@@ -8,6 +8,7 @@ import { performance } from 'node:perf_hooks'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import chalk from 'chalk'
+import { getExports, listExportNames } from 'export-scanner'
 import figlet from 'figlet'
 import inquirer from 'inquirer'
 import minimist from 'minimist'
@@ -42,6 +43,55 @@ class SimpleBenchmarker {
       type: 'module',
     }
     writeFileSync(join(this.tempDir, 'package.json'), JSON.stringify(packageJson, null, 2))
+  }
+
+  async runCLI(package1: string, function1: string, args1: string, package2: string, function2: string, args2: string): Promise<void> {
+    try {
+      console.log(chalk.gray(figlet.textSync('Lets Bench')))
+      console.log(chalk.cyan(`Benchmarking: ${package1}.${function1} vs ${package2}.${function2}\n`))
+
+      // Install packages
+      const pkg1 = await this.installPackage(package1)
+      const pkg2 = await this.installPackage(package2)
+
+      // Get functions (for validation)
+      const functions1 = this.getFunctions(pkg1)
+      const functions2 = this.getFunctions(pkg2)
+
+      // Parse arguments
+      const parsedArgs1 = this.parseArguments(args1)
+      const parsedArgs2 = this.parseArguments(args2)
+
+      console.log(chalk.gray(`${package1}.${function1} args: ${JSON.stringify(parsedArgs1)}`))
+      console.log(chalk.gray(`${package2}.${function2} args: ${JSON.stringify(parsedArgs2)}`))
+
+      // Run benchmarks
+      const spinner = ora('Running benchmarks...').start()
+
+      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1, functions1.allFinalExports)
+      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2, functions2.allFinalExports)
+
+      spinner.succeed('Benchmarks completed')
+
+      const results: BenchmarkResult[] = [
+        { package: package1, ...result1 },
+        { package: package2, ...result2 },
+      ]
+
+      this.displayResults(results)
+    }
+    catch (error) {
+      console.error(chalk.red('❌ Error:'), error instanceof Error ? error.message : error)
+    }
+    finally {
+    // Cleanup
+      try {
+        execSync(`rm -rf ${this.tempDir}`, { stdio: 'pipe' })
+      }
+      catch {
+      // Ignore cleanup errors
+      }
+    }
   }
 
   private async installPackage(packageName: string): Promise<any> {
@@ -146,96 +196,49 @@ class SimpleBenchmarker {
     }
   }
 
-  private getFunctions(pkg: any, maxDepth = 3): string[] {
-    const functions: string[] = []
-    const visited = new WeakSet()
-    const EXCLUDED_KEYS = ['constructor', 'prototype', 'caller', 'arguments', 'name', 'length']
-    const explore = (obj: any, path = '', depth = 0) => {
-      if (depth > maxDepth || obj == null) {
-        return
-      }
+  private getFunctions(pkg: any) {
+    try {
+    // Try different targets in order of preference
+      const targets = [
+        pkg.default, // ES module default export
+        pkg, // The module itself
+        pkg.module?.exports, // CommonJS exports
+      ].filter(Boolean)
 
-      // Avoid circular references
-      if (typeof obj === 'object' || typeof obj === 'function') {
-        if (visited.has(obj))
-          return
-        visited.add(obj)
-      }
-
-      if (typeof obj === 'function') {
-        functions.push(path || 'main')
-      }
-
-      if (typeof obj === 'object' || typeof obj === 'function') {
+      for (const target of targets) {
         try {
-          const keys = [
-            ...Object.keys(obj),
-            ...Object.getOwnPropertyNames(obj).filter(key =>
-              !Object.keys(obj).includes(key)
-              && typeof obj[key] === 'function',
-            ),
-          ].filter(key =>
-            !key.startsWith('_')
-            && !key.startsWith('__')
-            && !EXCLUDED_KEYS.includes(key),
-          )
+          const functionNames = listExportNames(target, {
+            maxDepth: 2, // Reduce depth to avoid deep nesting
+            includePrivate: false,
+            includeNonFunctions: true,
+            followPrototypes: false, // Turn off to get cleaner results
+            debug: false,
+          })
 
-          for (const key of keys) {
-            try {
-              const value = obj[key]
-              const newPath = path ? `${path}.${key}` : key
+          if (functionNames.length > 0) {
+            const allFinalExports = getExports(target, {
+              maxDepth: 2,
+              includePrivate: false,
+              followPrototypes: false,
+              includeClasses: true,
+              debug: false,
+            })
 
-              if (typeof value === 'function') {
-                functions.push(newPath)
-              }
-
-              if ((typeof value === 'object' || typeof value === 'function') && value !== null && depth < maxDepth) {
-                explore(value, newPath, depth + 1)
-              }
-            }
-            catch {
-              // Skip inaccessible properties
-            }
+            const normalizedExports = allFinalExports.functions ? allFinalExports.functions : allFinalExports
+            return { allFinalExports: normalizedExports, functionNames }
           }
         }
         catch {
-          // Skip if can't enumerate
+          continue
         }
       }
+
+      throw new Error('No functions found')
     }
-
-    // Check if this looks like a CommonJS module with default export containing the actual functions
-    const keys = Object.keys(pkg)
-
-    // If we only have 'default' key and it's an object with multiple properties, explore the default export
-    if (keys.length === 1 && keys[0] === 'default' && typeof pkg.default === 'object' && pkg.default !== null) {
-      const defaultKeys = Object.keys(pkg.default)
-      if (defaultKeys.length > 1) {
-      // This looks like a CommonJS module where all exports are under 'default'
-        explore(pkg.default)
-        return [...new Set(functions)]
-      }
+    catch (error) {
+      console.warn(chalk.yellow(`⚠️  Analysis failed`))
+      throw error
     }
-
-    // If we have both 'default' and other keys, but default contains more functions, prefer default
-    if (keys.includes('default') && typeof pkg.default === 'object' && pkg.default !== null) {
-      const defaultKeys = Object.keys(pkg.default).filter(key => typeof pkg.default[key] === 'function')
-      const topLevelFunctions = keys.filter(key => key !== 'default' && typeof pkg[key] === 'function')
-
-      // If default has significantly more functions, use it instead
-      if (defaultKeys.length > topLevelFunctions.length && defaultKeys.length > 5) {
-        explore(pkg.default)
-        return [...new Set(functions)]
-      }
-    }
-
-    // Default behavior - explore the package normally
-    explore(pkg)
-    return Array.from(new Set(functions))
-      .filter(name =>
-        name !== 'default'
-        && name !== 'module.exports',
-      )
   }
 
   private getValue(obj: any, path: string): any {
@@ -249,8 +252,23 @@ class SimpleBenchmarker {
     }, obj)
   }
 
-  private async benchmarkFunction(pkg: any, functionPath: string, args: any[]): Promise<Omit<BenchmarkResult, 'package'>> {
-    const func = this.getValue(pkg, functionPath)
+  // eslint-disable-next-line ts/no-unsafe-function-type
+  private async benchmarkFunction(pkg: any, functionPath: string, args: any[], callables: Record<string, Function>): Promise<Omit<BenchmarkResult, 'package'>> {
+    let func = callables[functionPath]
+
+    if (!func) {
+      func = this.getValue(pkg, functionPath)
+    }
+
+    if (!func) {
+      if (pkg.default && pkg.default[functionPath]) {
+        func = pkg.default[functionPath]
+      }
+
+      if (!func && pkg[functionPath]) {
+        func = pkg[functionPath]
+      }
+    }
 
     if (typeof func !== 'function') {
       throw new TypeError(`${functionPath} is not a function`)
@@ -261,13 +279,12 @@ class SimpleBenchmarker {
     let result: any
     let error: string | undefined
 
-    // Run multiple times for better averages i think this should be better
+    // Run multiple times for better averages
     for (let i = 0; i < this.runs; i++) {
       const memBefore = process.memoryUsage().heapUsed
       const start = performance.now()
 
       try {
-        // todo: use spread operator for args - tried was breasking something
         // eslint-disable-next-line prefer-spread
         result = func.apply(null, args)
         if (result && typeof result.then === 'function') {
@@ -338,7 +355,7 @@ class SimpleBenchmarker {
       console.log(`\n🚀 ${chalk.green('Winner:')} ${winner!.package}.${winner!.function}`)
       console.log(`   ${ratio}x faster than ${loser!.package}.${loser!.function}`)
       if (loser!.function !== winner!.function) {
-        console.log(`\n${chalk.yellow('⚠️  Note:')} These functions don’t return the same value! If you are looking for a fair comparison, ensure both functions have the same return value.`)
+        console.log(`\n${chalk.yellow('⚠️  Note:')} These functions don't return the same value! If you are looking for a fair comparison, ensure both functions have the same return value.`)
       }
     }
   }
@@ -411,13 +428,11 @@ class SimpleBenchmarker {
       const functions1 = this.getFunctions(pkg1)
       const functions2 = this.getFunctions(pkg2)
 
-      if (functions1.length === 0) {
+      if (functions1.functionNames.length === 0) {
         console.log(chalk.yellow(`⚠️  No functions found in ${package1}, but proceeding...`))
-        functions1.push('default')
       }
-      if (functions2.length === 0) {
+      if (functions2.functionNames.length === 0) {
         console.log(chalk.yellow(`⚠️  No functions found in ${package2}, but proceeding...`))
-        functions2.push('default')
       }
 
       // Select functions
@@ -426,13 +441,13 @@ class SimpleBenchmarker {
           type: 'list',
           name: 'function1',
           message: `Choose function from ${package1}:`,
-          choices: functions1,
+          choices: functions1.functionNames,
         },
         {
           type: 'list',
           name: 'function2',
           message: `Choose function from ${package2}:`,
-          choices: functions2,
+          choices: functions2.functionNames,
         },
       ])
 
@@ -497,8 +512,9 @@ class SimpleBenchmarker {
       // Run benchmarks
       const spinner = ora('Running benchmarks...').start()
 
-      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1)
-      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2)
+      // FIXED: Pass the correct callables objects
+      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1, functions1.allFinalExports)
+      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2, functions2.allFinalExports)
 
       spinner.succeed('Benchmarks completed')
 
@@ -524,13 +540,65 @@ class SimpleBenchmarker {
   }
 }
 
-// Run cli
 const argv = minimist(process.argv.slice(2))
 const runs = Number.parseInt(argv.runs || argv.r || '1', 10)
 
-if (runs < 1 || runs > 100) {
-  console.error(chalk.red('Error: runs must be between 1 and 100'))
-  process.exit(1)
-}
+const args = argv._
 
-new SimpleBenchmarker(runs).run().catch(console.error)
+const vsIndex = args.findIndex(arg => arg === 'vs')
+
+if (vsIndex !== -1 && vsIndex >= 2) {
+  const pkg1 = args[0]
+  const func1 = args[1]
+  const args1Parts = args.slice(2, vsIndex)
+  const args1Input = args1Parts.join(' ')
+
+  const remainingAfterVs = args.slice(vsIndex + 1)
+  if (remainingAfterVs.length < 2) {
+    console.error(chalk.red('Usage: <package1> <function1> <args> vs <package2> <function2> [args2]'))
+    console.error(chalk.red('Example: lodash map "data" vs ramda map "data"'))
+    process.exit(1)
+  }
+
+  const pkg2 = remainingAfterVs[0]
+  const func2 = remainingAfterVs[1]
+  const args2Parts = remainingAfterVs.slice(2)
+  const args2Input = args2Parts.length > 0 ? args2Parts.join(' ') : args1Input
+
+  new SimpleBenchmarker(runs).runCLI(
+    pkg1 ?? '',
+    func1 ?? '',
+    args1Input ?? '',
+    pkg2 ?? '',
+    func2 ?? '',
+    args2Input ?? '',
+  ).catch(console.error)
+}
+else if (args.length >= 3) {
+  const pkg1 = args[0]
+  const func1 = args[1]
+  const args1Input = args.slice(2).join(' ')
+
+  console.log(chalk.yellow('Running single benchmark. Use "vs" for comparison:'))
+  console.log(chalk.green(`Example: ${pkg1} ${func1} ${args1Input} vs <package2> <function2>`))
+
+  new SimpleBenchmarker(runs).run().catch(console.error)
+}
+else {
+  // Interactive mode or show usage
+  if (args.length === 0) {
+    new SimpleBenchmarker(runs).run().catch(console.error)
+  }
+  else {
+    console.error(chalk.red('Usage: <package1> <function1> <args> vs <package2> <function2> [args2]'))
+    console.error('')
+    console.error(chalk.green('Examples:'))
+    console.error(chalk.green('  lodash map "data" vs ramda map'))
+    console.error(chalk.green('  lodash map "data" vs ramda map "different data"'))
+    console.error(chalk.green('  --runs 100 lodash map "data" vs ramda map'))
+    console.error('')
+    console.error(chalk.yellow('Options:'))
+    console.error(chalk.yellow('  --runs, -r    Number of benchmark runs (default: 1)'))
+    process.exit(1)
+  }
+}
