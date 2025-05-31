@@ -8,6 +8,7 @@ import { performance } from 'node:perf_hooks'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import chalk from 'chalk'
+import { getExports, listExportNames } from 'export-scanner'
 import figlet from 'figlet'
 import inquirer from 'inquirer'
 import minimist from 'minimist'
@@ -146,96 +147,33 @@ class SimpleBenchmarker {
     }
   }
 
-  private getFunctions(pkg: any, maxDepth = 3): string[] {
-    const functions: string[] = []
-    const visited = new WeakSet()
-    const EXCLUDED_KEYS = ['constructor', 'prototype', 'caller', 'arguments', 'name', 'length']
-    const explore = (obj: any, path = '', depth = 0) => {
-      if (depth > maxDepth || obj == null) {
-        return
-      }
+  private getFunctions(pkg: any) {
+    try {
+      const allFinalExports = getExports(pkg, {
+        maxDepth: 3,
+        includePrivate: false,
+        followPrototypes: true,
+        includeClasses: true,
+        debug: false,
+      })
 
-      // Avoid circular references
-      if (typeof obj === 'object' || typeof obj === 'function') {
-        if (visited.has(obj))
-          return
-        visited.add(obj)
-      }
+      // Normalize the exports - if it has a 'functions' property, use that, otherwise use the object as-is
+      const normalizedExports = allFinalExports.functions ? allFinalExports.functions : allFinalExports
 
-      if (typeof obj === 'function') {
-        functions.push(path || 'main')
-      }
+      const functionNames = listExportNames(pkg, {
+        maxDepth: 3,
+        includePrivate: false,
+        includeNonFunctions: true,
+        followPrototypes: true,
+        debug: false,
+      })
 
-      if (typeof obj === 'object' || typeof obj === 'function') {
-        try {
-          const keys = [
-            ...Object.keys(obj),
-            ...Object.getOwnPropertyNames(obj).filter(key =>
-              !Object.keys(obj).includes(key)
-              && typeof obj[key] === 'function',
-            ),
-          ].filter(key =>
-            !key.startsWith('_')
-            && !key.startsWith('__')
-            && !EXCLUDED_KEYS.includes(key),
-          )
-
-          for (const key of keys) {
-            try {
-              const value = obj[key]
-              const newPath = path ? `${path}.${key}` : key
-
-              if (typeof value === 'function') {
-                functions.push(newPath)
-              }
-
-              if ((typeof value === 'object' || typeof value === 'function') && value !== null && depth < maxDepth) {
-                explore(value, newPath, depth + 1)
-              }
-            }
-            catch {
-              // Skip inaccessible properties
-            }
-          }
-        }
-        catch {
-          // Skip if can't enumerate
-        }
-      }
+      return { allFinalExports: normalizedExports, functionNames }
     }
-
-    // Check if this looks like a CommonJS module with default export containing the actual functions
-    const keys = Object.keys(pkg)
-
-    // If we only have 'default' key and it's an object with multiple properties, explore the default export
-    if (keys.length === 1 && keys[0] === 'default' && typeof pkg.default === 'object' && pkg.default !== null) {
-      const defaultKeys = Object.keys(pkg.default)
-      if (defaultKeys.length > 1) {
-      // This looks like a CommonJS module where all exports are under 'default'
-        explore(pkg.default)
-        return [...new Set(functions)]
-      }
+    catch (error) {
+      console.warn(chalk.yellow(`⚠️  Analysis failed`))
+      throw error
     }
-
-    // If we have both 'default' and other keys, but default contains more functions, prefer default
-    if (keys.includes('default') && typeof pkg.default === 'object' && pkg.default !== null) {
-      const defaultKeys = Object.keys(pkg.default).filter(key => typeof pkg.default[key] === 'function')
-      const topLevelFunctions = keys.filter(key => key !== 'default' && typeof pkg[key] === 'function')
-
-      // If default has significantly more functions, use it instead
-      if (defaultKeys.length > topLevelFunctions.length && defaultKeys.length > 5) {
-        explore(pkg.default)
-        return [...new Set(functions)]
-      }
-    }
-
-    // Default behavior - explore the package normally
-    explore(pkg)
-    return Array.from(new Set(functions))
-      .filter(name =>
-        name !== 'default'
-        && name !== 'module.exports',
-      )
   }
 
   private getValue(obj: any, path: string): any {
@@ -249,8 +187,15 @@ class SimpleBenchmarker {
     }, obj)
   }
 
-  private async benchmarkFunction(pkg: any, functionPath: string, args: any[]): Promise<Omit<BenchmarkResult, 'package'>> {
-    const func = this.getValue(pkg, functionPath)
+  // eslint-disable-next-line ts/no-unsafe-function-type
+  private async benchmarkFunction(pkg: any, functionPath: string, args: any[], callables: Record<string, Function>): Promise<Omit<BenchmarkResult, 'package'>> {
+    // Try to get function from callables first (more reliable)
+    let func = callables[functionPath]
+
+    // Fallback to the old method
+    if (!func) {
+      func = this.getValue(pkg, functionPath)
+    }
 
     if (typeof func !== 'function') {
       throw new TypeError(`${functionPath} is not a function`)
@@ -261,13 +206,12 @@ class SimpleBenchmarker {
     let result: any
     let error: string | undefined
 
-    // Run multiple times for better averages i think this should be better
+    // Run multiple times for better averages
     for (let i = 0; i < this.runs; i++) {
       const memBefore = process.memoryUsage().heapUsed
       const start = performance.now()
 
       try {
-        // todo: use spread operator for args - tried was breasking something
         // eslint-disable-next-line prefer-spread
         result = func.apply(null, args)
         if (result && typeof result.then === 'function') {
@@ -338,7 +282,7 @@ class SimpleBenchmarker {
       console.log(`\n🚀 ${chalk.green('Winner:')} ${winner!.package}.${winner!.function}`)
       console.log(`   ${ratio}x faster than ${loser!.package}.${loser!.function}`)
       if (loser!.function !== winner!.function) {
-        console.log(`\n${chalk.yellow('⚠️  Note:')} These functions don’t return the same value! If you are looking for a fair comparison, ensure both functions have the same return value.`)
+        console.log(`\n${chalk.yellow('⚠️  Note:')} These functions don't return the same value! If you are looking for a fair comparison, ensure both functions have the same return value.`)
       }
     }
   }
@@ -411,13 +355,11 @@ class SimpleBenchmarker {
       const functions1 = this.getFunctions(pkg1)
       const functions2 = this.getFunctions(pkg2)
 
-      if (functions1.length === 0) {
+      if (functions1.functionNames.length === 0) {
         console.log(chalk.yellow(`⚠️  No functions found in ${package1}, but proceeding...`))
-        functions1.push('default')
       }
-      if (functions2.length === 0) {
+      if (functions2.functionNames.length === 0) {
         console.log(chalk.yellow(`⚠️  No functions found in ${package2}, but proceeding...`))
-        functions2.push('default')
       }
 
       // Select functions
@@ -426,13 +368,13 @@ class SimpleBenchmarker {
           type: 'list',
           name: 'function1',
           message: `Choose function from ${package1}:`,
-          choices: functions1,
+          choices: functions1.functionNames,
         },
         {
           type: 'list',
           name: 'function2',
           message: `Choose function from ${package2}:`,
-          choices: functions2,
+          choices: functions2.functionNames,
         },
       ])
 
@@ -497,8 +439,9 @@ class SimpleBenchmarker {
       // Run benchmarks
       const spinner = ora('Running benchmarks...').start()
 
-      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1)
-      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2)
+      // FIXED: Pass the correct callables objects
+      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1, functions1.allFinalExports)
+      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2, functions2.allFinalExports)
 
       spinner.succeed('Benchmarks completed')
 
