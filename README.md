@@ -181,10 +181,10 @@ npx letsbench lodash kebabCase "hello world" vs change-case kebabCase "hello wor
 npx letsbench lodash uniq "[1,2,2,3]" vs ramda uniq
 
 # With options objects
-npx letsbench lodash merge "[{a:1}, {b:2}]" vs ramda mergeWith "[{a:1}, {b:2}]"
+npx letsbench lodash pick '[{"a":1, "b":2, "c":3}, ["a", "b"]]' vs ramda pick '[["a", "b"], {"a":1, "b":2, "c":3}]'
 
 # Multiple runs for accuracy
-npx letsbench --runs 50 lodash debounce "[function(){}, 100]" vs underscore debounce
+npx letsbench --runs 50 lodash chunk '[[1,2,3,4,5,6], 2]' vs ramda splitEvery '[2, [1,2,3,4,5,6]]'
 
 # Different arguments for each function
 npx letsbench package1 func1 "args1" vs package2 func2 "args2"
