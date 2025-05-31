@@ -74,7 +74,7 @@
     "bumpp": "latest",
     "changelogithub": "latest",
     "eslint": "latest",
-    "export-scanner": "latest",
+    "export-scanner": "0.0.2",
     "installed-check": "latest",
     "knip": "latest",
     "lint-staged": "latest",
