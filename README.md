@@ -176,7 +176,7 @@ LetsBench supports flexible argument parsing in both interactive and CLI modes:
 
 ```bash
 # String manipulation comparison
-npx letsbench lodash kebabCase "hello world" vs change-case kebab "hello world"
+npx letsbench lodash kebabCase "hello world" vs change-case kebabCase "hello world"
 
 # Array operations
 npx letsbench lodash uniq "[1,2,2,3]" vs ramda uniq
