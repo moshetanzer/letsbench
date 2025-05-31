@@ -354,7 +354,10 @@ class SimpleBenchmarker {
 
       console.log(`\n🚀 ${chalk.green('Winner:')} ${winner!.package}.${winner!.function}`)
       console.log(`   ${ratio}x faster than ${loser!.package}.${loser!.function}`)
-      if (loser!.function !== winner!.function) {
+      const result1Str = JSON.stringify(successfulResults[0]!.result)
+      const result2Str = JSON.stringify(successfulResults[1]!.result)
+
+      if (result1Str !== result2Str) {
         console.log(`\n${chalk.yellow('⚠️  Note:')} These functions don't return the same value! If you are looking for a fair comparison, ensure both functions have the same return value.`)
       }
     }
