@@ -22,10 +22,11 @@ npx letsbench
 - 📊 **Detailed results** with system information and winner declaration
 - 🎯 **Multiple runs** support for more accurate averages
 - 🎨 **Colorful CLI interface** with visual feedback
+- ⚡ **Direct CLI syntax** for quick comparisons
 
 ## Usage
 
-### Basic Usage
+### Interactive Mode
 
 Simply run the command and follow the interactive prompts:
 
@@ -40,21 +41,37 @@ The tool will guide you through:
 3. **Arguments**: Provide test arguments for the functions
 4. **Results**: View detailed benchmark results
 
-### Advanced Usage
+### Direct CLI Mode
 
-Run multiple iterations for more accurate averages:
+Compare functions directly from the command line using natural syntax:
 
 ```bash
-npx letsbench --runs 10
-# or
-npx letsbench -r 10
+# Basic comparison
+npx letsbench lodash map "data" vs ramda map
+
+# Different arguments for each function
+npx letsbench lodash map "data" vs ramda map "different data"
+
+# Multiple runs for better accuracy
+npx letsbench --runs 10 lodash map "data" vs ramda map
 ```
 
-**Options:**
+**CLI Syntax:**
+
+```bash
+npx letsbench [options] <package1> <function1> <args1> vs <package2> <function2> [args2]
+```
+
+- If `args2` is omitted, `args1` will be used for both functions
+- Arguments are parsed the same way as in interactive mode
+
+### Options
 
 - `--runs, -r`: Number of runs per function (1-100, default: 1)
 
-## Example Session
+## Example Sessions
+
+### Interactive Mode
 
 ```shell
 ➜ npx letsbench
@@ -103,9 +120,40 @@ Runs: 1
    2.81x faster than demo-pacakge2.casePascal
 ```
 
+### Direct CLI Mode
+
+```shell
+➜ npx letsbench lodash map "[1,2,3]" vs ramda map
+
+🏆 BENCHMARK RESULTS
+==================================================
+
+💻 System Info:
+Platform: darwin arm64
+CPU: Apple M1
+Memory: 8GB
+Node: v23.10.0
+Runs: 1
+
+📊 Results:
+
+1. lodash.map
+   ⏱️  Time: 0.0234ms
+   🧠 Memory: +2456 bytes
+   ✅ Result: [1,2,3]
+
+2. ramda.map
+   ⏱️  Time: 0.0891ms
+   🧠 Memory: +4123 bytes
+   ✅ Result: [1,2,3]
+
+🚀 Winner: lodash.map
+   3.81x faster than ramda.map
+```
+
 ## Function Arguments
 
-LetsBench supports flexible argument parsing:
+LetsBench supports flexible argument parsing in both interactive and CLI modes:
 
 ### Argument Examples
 
@@ -123,6 +171,25 @@ LetsBench supports flexible argument parsing:
 1. **Empty input**: Returns empty array `[]`
 2. **Valid JSON**: Parses as JSON (arrays remain arrays, objects become single arguments)
 3. **Invalid JSON**: Treats as single string argument
+
+## CLI Examples
+
+```bash
+# String manipulation comparison
+npx letsbench lodash kebabCase "hello world" vs change-case kebab "hello world"
+
+# Array operations
+npx letsbench lodash uniq "[1,2,2,3]" vs ramda uniq
+
+# With options objects
+npx letsbench lodash merge "[{a:1}, {b:2}]" vs ramda mergeWith "[{a:1}, {b:2}]"
+
+# Multiple runs for accuracy
+npx letsbench --runs 50 lodash debounce "[function(){}, 100]" vs underscore debounce
+
+# Different arguments for each function
+npx letsbench package1 func1 "args1" vs package2 func2 "args2"
+```
 
 ## Contributing
 

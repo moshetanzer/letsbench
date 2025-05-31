@@ -539,31 +539,66 @@ class SimpleBenchmarker {
     }
   }
 }
-// Parse CLI arguments
+
 const argv = minimist(process.argv.slice(2))
 const runs = Number.parseInt(argv.runs || argv.r || '1', 10)
 
-// NEW: Better CLI parsing
 const args = argv._
-if (args.length >= 3) {
-  // CLI mode: package1 function1 "args" --vs package2 function2
+
+const vsIndex = args.findIndex(arg => arg === 'vs')
+
+if (vsIndex !== -1 && vsIndex >= 2) {
   const pkg1 = args[0]
   const func1 = args[1]
-  const args1Input = args.slice(2).join(' ') // Join remaining args as input
+  const args1Parts = args.slice(2, vsIndex)
+  const args1Input = args1Parts.join(' ')
 
-  const pkg2 = argv.vs || argv.v
-  const func2 = argv.func || argv.f
-  const args2Input = argv.args || argv.a || args1Input // Default to same args
-
-  if (pkg1 && func1 && pkg2 && func2) {
-    new SimpleBenchmarker(runs).runCLI(pkg1, func1, args1Input, pkg2, func2, args2Input).catch(console.error)
-  }
-  else {
-    console.error(chalk.red('Usage: <package1> <function1> <args> --vs <package2> --func <function2> [--args <args2>]'))
+  const remainingAfterVs = args.slice(vsIndex + 1)
+  if (remainingAfterVs.length < 2) {
+    console.error(chalk.red('Usage: <package1> <function1> <args> vs <package2> <function2> [args2]'))
+    console.error(chalk.red('Example: lodash map "data" vs ramda map "data"'))
     process.exit(1)
   }
+
+  const pkg2 = remainingAfterVs[0]
+  const func2 = remainingAfterVs[1]
+  const args2Parts = remainingAfterVs.slice(2)
+  const args2Input = args2Parts.length > 0 ? args2Parts.join(' ') : args1Input
+
+  new SimpleBenchmarker(runs).runCLI(
+    pkg1 ?? '',
+    func1 ?? '',
+    args1Input ?? '',
+    pkg2 ?? '',
+    func2 ?? '',
+    args2Input ?? '',
+  ).catch(console.error)
+}
+else if (args.length >= 3) {
+  const pkg1 = args[0]
+  const func1 = args[1]
+  const args1Input = args.slice(2).join(' ')
+
+  console.log(chalk.yellow('Running single benchmark. Use "vs" for comparison:'))
+  console.log(chalk.green(`Example: ${pkg1} ${func1} ${args1Input} vs <package2> <function2>`))
+
+  new SimpleBenchmarker(runs).run().catch(console.error)
 }
 else {
-  // Interactive mode
-  new SimpleBenchmarker(runs).run().catch(console.error)
+  // Interactive mode or show usage
+  if (args.length === 0) {
+    new SimpleBenchmarker(runs).run().catch(console.error)
+  }
+  else {
+    console.error(chalk.red('Usage: <package1> <function1> <args> vs <package2> <function2> [args2]'))
+    console.error('')
+    console.error(chalk.green('Examples:'))
+    console.error(chalk.green('  lodash map "data" vs ramda map'))
+    console.error(chalk.green('  lodash map "data" vs ramda map "different data"'))
+    console.error(chalk.green('  --runs 100 lodash map "data" vs ramda map'))
+    console.error('')
+    console.error(chalk.yellow('Options:'))
+    console.error(chalk.yellow('  --runs, -r    Number of benchmark runs (default: 1)'))
+    process.exit(1)
+  }
 }
