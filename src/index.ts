@@ -45,6 +45,55 @@ class SimpleBenchmarker {
     writeFileSync(join(this.tempDir, 'package.json'), JSON.stringify(packageJson, null, 2))
   }
 
+  async runCLI(package1: string, function1: string, args1: string, package2: string, function2: string, args2: string): Promise<void> {
+    try {
+      console.log(chalk.gray(figlet.textSync('Lets Bench')))
+      console.log(chalk.cyan(`Benchmarking: ${package1}.${function1} vs ${package2}.${function2}\n`))
+
+      // Install packages
+      const pkg1 = await this.installPackage(package1)
+      const pkg2 = await this.installPackage(package2)
+
+      // Get functions (for validation)
+      const functions1 = this.getFunctions(pkg1)
+      const functions2 = this.getFunctions(pkg2)
+
+      // Parse arguments
+      const parsedArgs1 = this.parseArguments(args1)
+      const parsedArgs2 = this.parseArguments(args2)
+
+      console.log(chalk.gray(`${package1}.${function1} args: ${JSON.stringify(parsedArgs1)}`))
+      console.log(chalk.gray(`${package2}.${function2} args: ${JSON.stringify(parsedArgs2)}`))
+
+      // Run benchmarks
+      const spinner = ora('Running benchmarks...').start()
+
+      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1, functions1.allFinalExports)
+      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2, functions2.allFinalExports)
+
+      spinner.succeed('Benchmarks completed')
+
+      const results: BenchmarkResult[] = [
+        { package: package1, ...result1 },
+        { package: package2, ...result2 },
+      ]
+
+      this.displayResults(results)
+    }
+    catch (error) {
+      console.error(chalk.red('❌ Error:'), error instanceof Error ? error.message : error)
+    }
+    finally {
+    // Cleanup
+      try {
+        execSync(`rm -rf ${this.tempDir}`, { stdio: 'pipe' })
+      }
+      catch {
+      // Ignore cleanup errors
+      }
+    }
+  }
+
   private async installPackage(packageName: string): Promise<any> {
     const spinner = ora(`Installing ${packageName}`).start()
 
@@ -149,26 +198,42 @@ class SimpleBenchmarker {
 
   private getFunctions(pkg: any) {
     try {
-      const allFinalExports = getExports(pkg, {
-        maxDepth: 3,
-        includePrivate: false,
-        followPrototypes: true,
-        includeClasses: true,
-        debug: false,
-      })
+    // Try different targets in order of preference
+      const targets = [
+        pkg.default, // ES module default export
+        pkg, // The module itself
+        pkg.module?.exports, // CommonJS exports
+      ].filter(Boolean)
 
-      // Normalize the exports - if it has a 'functions' property, use that, otherwise use the object as-is
-      const normalizedExports = allFinalExports.functions ? allFinalExports.functions : allFinalExports
+      for (const target of targets) {
+        try {
+          const functionNames = listExportNames(target, {
+            maxDepth: 2, // Reduce depth to avoid deep nesting
+            includePrivate: false,
+            includeNonFunctions: true,
+            followPrototypes: false, // Turn off to get cleaner results
+            debug: false,
+          })
 
-      const functionNames = listExportNames(pkg, {
-        maxDepth: 3,
-        includePrivate: false,
-        includeNonFunctions: true,
-        followPrototypes: true,
-        debug: false,
-      })
+          if (functionNames.length > 0) {
+            const allFinalExports = getExports(target, {
+              maxDepth: 2,
+              includePrivate: false,
+              followPrototypes: false,
+              includeClasses: true,
+              debug: false,
+            })
 
-      return { allFinalExports: normalizedExports, functionNames }
+            const normalizedExports = allFinalExports.functions ? allFinalExports.functions : allFinalExports
+            return { allFinalExports: normalizedExports, functionNames }
+          }
+        }
+        catch {
+          continue
+        }
+      }
+
+      throw new Error('No functions found')
     }
     catch (error) {
       console.warn(chalk.yellow(`⚠️  Analysis failed`))
@@ -189,12 +254,20 @@ class SimpleBenchmarker {
 
   // eslint-disable-next-line ts/no-unsafe-function-type
   private async benchmarkFunction(pkg: any, functionPath: string, args: any[], callables: Record<string, Function>): Promise<Omit<BenchmarkResult, 'package'>> {
-    // Try to get function from callables first (more reliable)
     let func = callables[functionPath]
 
-    // Fallback to the old method
     if (!func) {
       func = this.getValue(pkg, functionPath)
+    }
+
+    if (!func) {
+      if (pkg.default && pkg.default[functionPath]) {
+        func = pkg.default[functionPath]
+      }
+
+      if (!func && pkg[functionPath]) {
+        func = pkg[functionPath]
+      }
     }
 
     if (typeof func !== 'function') {
@@ -466,14 +539,31 @@ class SimpleBenchmarker {
     }
   }
 }
-
-// Run cli
+// Parse CLI arguments
 const argv = minimist(process.argv.slice(2))
 const runs = Number.parseInt(argv.runs || argv.r || '1', 10)
 
-if (runs < 1 || runs > 100) {
-  console.error(chalk.red('Error: runs must be between 1 and 100'))
-  process.exit(1)
-}
+// NEW: Better CLI parsing
+const args = argv._
+if (args.length >= 3) {
+  // CLI mode: package1 function1 "args" --vs package2 function2
+  const pkg1 = args[0]
+  const func1 = args[1]
+  const args1Input = args.slice(2).join(' ') // Join remaining args as input
 
-new SimpleBenchmarker(runs).run().catch(console.error)
+  const pkg2 = argv.vs || argv.v
+  const func2 = argv.func || argv.f
+  const args2Input = argv.args || argv.a || args1Input // Default to same args
+
+  if (pkg1 && func1 && pkg2 && func2) {
+    new SimpleBenchmarker(runs).runCLI(pkg1, func1, args1Input, pkg2, func2, args2Input).catch(console.error)
+  }
+  else {
+    console.error(chalk.red('Usage: <package1> <function1> <args> --vs <package2> --func <function2> [--args <args2>]'))
+    process.exit(1)
+  }
+}
+else {
+  // Interactive mode
+  new SimpleBenchmarker(runs).run().catch(console.error)
+}
