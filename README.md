@@ -2,7 +2,6 @@
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
-[![Codecov][codecov-src]][codecov-href]
 
 A simple CLI tool to run head-to-head function benchmarking across NPM packages. Perfect for comparing the performance of similar functions from different libraries.
 
@@ -204,5 +203,5 @@ MIT
 [npm-version-href]: https://npmjs.com/package/letsbench
 [npm-downloads-src]: https://img.shields.io/npm/dm/letsbench?style=flat
 [npm-downloads-href]: https://npmjs.com/package/letsbench
-[codecov-src]: https://img.shields.io/codecov/c/gh/moshetanzer/letsbench/main?style=flat
-[codecov-href]: https://codecov.io/gh/moshetanzer/letsbench
+<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/moshetanzer/letsbench/main?style=flat
+[codecov-href]: https://codecov.io/gh/moshetanzer/letsbench -->
