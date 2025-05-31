@@ -46,13 +46,13 @@ Compare functions directly from the command line using natural syntax:
 
 ```bash
 # Basic comparison
-npx letsbench lodash map "data" vs ramda map
+npx letsbench lodash cloneDeep '{"a":{"b":{"c":1}}}' vs ramda clone
 
 # Different arguments for each function
-npx letsbench lodash map "data" vs ramda map "different data"
+npx letsbench lodash cloneDeep '{"a":{"b":{"c":1}}}' vs ramda clone '{"a":{"b":{"c":1}}}'
 
 # Multiple runs for better accuracy
-npx letsbench --runs 10 lodash map "data" vs ramda map
+npx letsbench --runs 20 lodash cloneDeep '{"a":{"b":{"c":1}}}' vs ramda clone
 ```
 
 **CLI Syntax:**
