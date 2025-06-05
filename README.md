@@ -2,8 +2,13 @@
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
+![GitHub last commit](https://img.shields.io/github/last-commit/moshetanzer/letsbench)
+![GitHub License](https://img.shields.io/github/license/moshetanzer/letsbench)
 
 A simple CLI tool to run head-to-head function benchmarking across NPM packages. Perfect for comparing the performance of similar functions from different libraries.
+
+[!TIP]
+A helpful tool to evaluate performance changes between the main package and the updated pkg-pr-new version.
 
 ## Quick Start
 
@@ -32,13 +37,6 @@ Simply run the command and follow the interactive prompts:
 ```bash
 npx letsbench
 ```
-
-The tool will guide you through:
-
-1. **Package Selection**: Enter two NPM package names to compare
-2. **Function Selection**: Choose specific functions from each package
-3. **Arguments**: Provide test arguments for the functions
-4. **Results**: View detailed benchmark results
 
 ### Direct CLI Mode
 
@@ -105,18 +103,18 @@ Runs: 1
 
 📊 Results:
 
-1. demo-pacakge1.pascalCase
+1. demo-package1.pascalCase
    ⏱️  Time: 0.1453ms
    🧠 Memory: +6344 bytes
    ✅ Result: "HelloWorld"
 
-2. demo-pacakge2.casePascal
+2. demo-package2.casePascal
    ⏱️  Time: 0.4080ms
    🧠 Memory: +12936 bytes
    ✅ Result: "HelloWorld"
 
-🚀 Winner: demo-pacakge1.pascalCase
-   2.81x faster than demo-pacakge2.casePascal
+🚀 Winner: demo-package1.pascalCase
+   2.81x faster than demo-package2.casePascal
 ```
 
 ### Direct CLI Mode
@@ -170,25 +168,6 @@ LetsBench supports flexible argument parsing in both interactive and CLI modes:
 1. **Empty input**: Returns empty array `[]`
 2. **Valid JSON**: Parses as JSON (arrays remain arrays, objects become single arguments)
 3. **Invalid JSON**: Treats as single string argument
-
-## CLI Examples
-
-```bash
-# String manipulation comparison
-npx letsbench lodash kebabCase "hello world" vs change-case kebabCase "hello world"
-
-# Array operations
-npx letsbench lodash uniq "[1,2,2,3]" vs ramda uniq
-
-# With options objects
-npx letsbench lodash pick '[{"a":1, "b":2, "c":3}, ["a", "b"]]' vs ramda pick '[["a", "b"], {"a":1, "b":2, "c":3}]'
-
-# Multiple runs for accuracy
-npx letsbench --runs 50 lodash chunk '[[1,2,3,4,5,6], 2]' vs ramda splitEvery '[2, [1,2,3,4,5,6]]'
-
-# Different arguments for each function
-npx letsbench package1 func1 "args1" vs package2 func2 "args2"
-```
 
 ## Contributing
 
