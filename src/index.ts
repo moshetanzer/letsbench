@@ -408,7 +408,6 @@ class SimpleBenchmarker {
     console.log(chalk.gray('A simple CLI to run head-to-head function benchmarking across NPM packages\n'))
 
     try {
-      // Get package names
       const { package1, package2 } = await inquirer.prompt([
         {
           type: 'input',
@@ -424,11 +423,9 @@ class SimpleBenchmarker {
         },
       ])
 
-      // Install packages
       const pkg1 = await this.installPackage(package1)
       const pkg2 = await this.installPackage(package2)
 
-      // Get functions
       const functions1 = this.getFunctions(pkg1)
       const functions2 = this.getFunctions(pkg2)
 
@@ -439,7 +436,8 @@ class SimpleBenchmarker {
         console.log(chalk.yellow(`⚠️  No functions found in ${package2}, but proceeding...`))
       }
 
-      // Select functions
+      console.log(chalk.cyan('\n💡 Tip: You can type to search through the function list'))
+
       const { function1, function2 } = await inquirer.prompt([
         {
           type: 'list',
