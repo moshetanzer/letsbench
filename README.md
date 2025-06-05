@@ -7,8 +7,8 @@
 
 A simple CLI tool to run head-to-head function benchmarking across NPM packages. Perfect for comparing the performance of similar functions from different libraries.
 
-[!TIP]
-A helpful tool to evaluate performance changes between the main package and the updated pkg-pr-new version.
+>[!TIP]
+>A helpful tool to evaluate performance changes between the main package and the updated pkg-pr-new version.
 
 ## Quick Start
 
