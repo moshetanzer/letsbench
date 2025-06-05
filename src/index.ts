@@ -61,26 +61,31 @@ class SimpleBenchmarker {
 
       console.log(chalk.gray(`${package1}.${function1} args: ${JSON.stringify(parsedArgs1)}`))
       console.log(chalk.gray(`${package2}.${function2} args: ${JSON.stringify(parsedArgs2)}`))
-
       const spinner = ora('Running benchmarks...').start()
 
-      const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1, functions1.allFinalExports)
-      const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2, functions2.allFinalExports)
+      try {
+        const result1 = await this.benchmarkFunction(pkg1, function1, parsedArgs1, functions1.allFinalExports)
+        const result2 = await this.benchmarkFunction(pkg2, function2, parsedArgs2, functions2.allFinalExports)
 
-      spinner.succeed('Benchmarks completed')
+        spinner.succeed('Benchmarks completed')
 
-      const results: BenchmarkResult[] = [
-        { package: package1, ...result1 },
-        { package: package2, ...result2 },
-      ]
+        const results: BenchmarkResult[] = [
+          { package: package1, ...result1 },
+          { package: package2, ...result2 },
+        ]
 
-      this.displayResults(results)
+        this.displayResults(results)
+      }
+      catch (error) {
+        spinner.fail('Benchmark failed')
+        throw error
+      }
     }
     catch (error) {
       console.error(chalk.red('❌ Error:'), error instanceof Error ? error.message : error)
+      console.error(chalk.red('Please ensure that the packages and functions inputted exist.'))
     }
     finally {
-    // Cleanup
       try {
         execSync(`rm -rf ${this.tempDir}`, { stdio: 'pipe' })
       }
