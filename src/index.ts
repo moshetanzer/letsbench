@@ -543,7 +543,7 @@ class SimpleBenchmarker {
 }
 
 const argv = minimist(process.argv.slice(2))
-const runs = Number.parseInt(argv.runs || argv.r || '1', 10)
+const runs = Number.parseInt(argv.runs || argv.r || '4', 10)
 
 const args = argv._
 
